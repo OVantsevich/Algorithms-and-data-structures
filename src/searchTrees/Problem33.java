@@ -1,80 +1,81 @@
 package searchTrees;
 
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Scanner;
+import java.util.HashSet;
+import java.util.Set;
 
 public class Problem33 {
 
-	public static void main(String[] args) {
+	@SuppressWarnings("resource")
+	public static void main(String[] args) throws NumberFormatException, IOException {
 
 		int size = 0;
 		int left[] = null;
 		int right[] = null;
-		int key[] = null;
+		long key[] = null;
 		int from[] = null;
 		int deep[] = null;
+		Set<Long> set = new HashSet<Long>();
 
-		try {
-			File myObj = new File("input.txt");
-			Scanner myReader = new Scanner(myObj);
-			while (myReader.hasNextInt()) {
-				myReader.nextInt();
-				++size;
-			}
-			myReader.close();
-			myReader = new Scanner(myObj);
+		BufferedReader br = new BufferedReader(new FileReader("input.txt"));
+		String line;
+		while ((line = br.readLine()) != null) {
+			if (set.contains(Long.parseLong(line)))
+				continue;
+			++size;
+			set.add(Long.parseLong(line));
+		}
+		br = new BufferedReader(new FileReader("input.txt"));
+		set = new HashSet<Long>();
 
-			left = new int[size];
-			key = new int[size];
-			from = new int[size];
-			right = new int[size];
-			deep = new int[size];
-			int current;
-			int iterator = 0;
+		left = new int[size];
+		key = new long[size];
+		from = new int[size];
+		right = new int[size];
+		deep = new int[size];
+		long current;
+		int iterator = 0;
 
-			while (myReader.hasNextInt()) {
-				current = myReader.nextInt();
-				key[iterator] = current;
+		while ((line = br.readLine()) != null) {
+			current = Long.parseLong(line);
+			if (set.contains(current))
+				continue;
+			key[iterator] = current;
+			set.add(Long.parseLong(line));
 
-				int i = 0;
-				int currentDepp = 0;
-				while (true) {
-					if (current > key[i]) {
-						if (right[i] == 0) {
-							++currentDepp;
-							right[i] = iterator;
-							deep[iterator] = currentDepp;
-							from[iterator++] = i;
-							break;
-						} else {
-							++currentDepp;
-							i = right[i];
-						}
+			int i = 0;
+			int currentDepp = 0;
+			while (true) {
+				if (current > key[i]) {
+					if (right[i] == 0) {
+						++currentDepp;
+						right[i] = iterator;
+						deep[iterator] = currentDepp;
+						from[iterator++] = i;
+						break;
 					} else {
-						if (left[i] == 0) {
-							++currentDepp;
-							left[i] = iterator;
-							deep[iterator] = currentDepp;
-							from[iterator++] = i;
-							break;
-						} else {
-							++currentDepp;
-							i = left[i];
-						}
+						++currentDepp;
+						i = right[i];
+					}
+				} else {
+					if (left[i] == 0) {
+						++currentDepp;
+						left[i] = iterator;
+						deep[iterator] = currentDepp;
+						from[iterator++] = i;
+						break;
+					} else {
+						++currentDepp;
+						i = left[i];
 					}
 				}
-
 			}
-			--deep[0];
-
-			myReader.close();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
 		}
+		--deep[0];
 
 		int last[] = new int[size];
 		int index = 0;
@@ -83,23 +84,19 @@ public class Problem33 {
 			if (right[i] == 0 && left[i] == 0)
 				last[index++] = i;
 		}
-
-		int length = 0;
-		int saveA = 0, saveB = 0;
-
-		if(index == 1) {
+		if (left[0] == 0 || right[0] == 0) {
 			last[index++] = 0;
 		}
-		
-		int result[] = maxWayCalculation(deep, last, key, from, index);
-		saveA = result[0];
-		saveB = result[1];
-		length = result[2];
-		
 
-		int removing = -1;
+		int result[] = maxWayCalculation(deep, last, key, from, index);
+		int saveA = result[0];
+		int saveB = result[1];
+		int length = result[2];
+		
+		
 		if (length != 0 && length % 2 == 0) {
-			int way[] = new int[length + 1];
+			long removing = -1;
+			long way[] = new long[length + 1];
 
 			if (deep[saveA] < deep[saveB]) {
 				int tmp = saveA;
@@ -108,11 +105,10 @@ public class Problem33 {
 			}
 
 			int k = 0;
-			while(deep[saveA] != deep[saveB]) {
+			while (deep[saveA] != deep[saveB]) {
 				way[k++] = key[saveA];
 				saveA = from[saveA];
 			}
-			
 
 			while (saveA != saveB) {
 				way[k] = key[saveA];
@@ -125,127 +121,159 @@ public class Problem33 {
 
 			Arrays.sort(way);
 
-			for (int i = 0; i < size; i++)
-				if (key[i] == way[length / 2])
-					removing = i;
+			removing = way[length / 2];
+			if(rightRemoving(right, left, key, from, removing))
+				--size;
+		}		
 
+		long[] answer = leftBypass(right, left, key, from, size);
+
+		FileWriter myWriter = new FileWriter("output.txt");
+		for (long i : answer) {
+			myWriter.write("" + i);
+			myWriter.write("\n");
 		}
-
-		if (removing != -1) {
-			if (right[removing] == 0) {
-				if (left[removing] == 0) {
-					if (left[from[removing]] == removing)
-						left[from[removing]] = 0;
-					else
-						right[from[removing]] = 0;
-				} else {
-					from[left[removing]] = from[removing];
-					if (left[from[removing]] == removing)
-						left[from[removing]] = left[removing];
-					else
-						right[from[removing]] = left[removing];
-
-				}
-			} else {
-				if (left[removing] == 0) {
-					from[right[removing]] = from[removing];
-					if (right[from[removing]] == removing)
-						right[from[removing]] = right[removing];
-					else
-						left[from[removing]] = right[removing];
-				} else {
-
-					int current = right[removing];
-					while (left[current] != 0)
-						current = left[current];
-
-					if (right[current] != 0) {
-						if (right[from[current]] == current)
-							right[from[current]] = right[current];
-						else
-							left[from[current]] = right[current];
-						from[right[current]] = from[current];
-
-						key[removing] = key[current];
-
-					} else {
-						if (right[from[current]] == current)
-							right[from[current]] = 0;
-						else
-							left[from[current]] = 0;
-						key[removing] = key[current];
-					}
-				}
-			}
-		}
-
-		if (removing == -1) {
-			size++;
-		}
-		int[] answer = leftBypass(right, left, key, from, size - 1);
-
-		try {
-			FileWriter myWriter = new FileWriter("output.txt");
-			for (int i : answer) {
-				myWriter.write(i + "\r");
-			}
-			myWriter.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		myWriter.close();
 	}
 
-	public static int[] leftBypass(int right[], int left[], int key[], int from[], int size) {
-		int leftBypass[] = new int[size];
+	public static long[] leftBypass(int right[], int left[], long key[], int from[], int size) {
+		long leftBypass[] = new long[size];
 
 		int current = 0;
 		boolean FLAG_UP = false;
-		boolean FLAG_FROM_LEFT = true;
+		int last = 0;
 
 		for (int i = 0; i < size; i++) {
 			if (FLAG_UP) {
 				if (right[current] == 0 || left[current] == 0) {
+					last = current;
 					current = from[current];
 				} else {
-					if (FLAG_FROM_LEFT) {
+					if (left[current] == last) {
 						FLAG_UP = false;
 						current = right[current];
-						FLAG_FROM_LEFT = false;
 					} else {
+						last = current;
 						current = from[current];
-						FLAG_FROM_LEFT = true;
 					}
 				}
 				--i;
 			} else {
 				leftBypass[i] = key[current];
 				if (left[current] != 0) {
-					if(right[current] != 0)
-						FLAG_FROM_LEFT = true;
 					current = left[current];
+				} else if (right[current] != 0) {
+					current = right[current];
 				} else {
-					if (right[current] == 0) {
-						FLAG_UP = true;
-						current = from[current];
-					} else {
-						current = right[current];
-					}
+					FLAG_UP = true;
+					last = current;
+					current = from[current];
 				}
 			}
 		}
 
 		return leftBypass;
 	}
+
+	public static boolean rightRemoving(int right[], int left[], long key[], int from[], long removingKey) {
+
+		int removing = -1;
+		for (int i = 0; i < key.length; i++) {
+			if (key[i] == removingKey) {
+				removing = i;
+				break;
+			}
+		}
+
+		if (removing == -1)
+			return false;
+
+		if (right[removing] == left[removing]) {
+			if (left[from[removing]] == removing)
+				left[from[removing]] = 0;
+			else
+				right[from[removing]] = 0;
+			return true;
+		}
+
+		if (left[removing] == 0) {
+			if (removing != 0) {
+				if (left[from[removing]] == removing) {
+					left[from[removing]] = right[removing];
+				} else {
+					right[from[removing]] = right[removing];
+				}
+				from[right[removing]] = from[removing];
+			} else {
+				if (left[right[0]] != 0) {
+					from[left[right[0]]] = 0;
+					left[0] = left[right[0]];
+				}
+				if (right[right[0]] != 0) {
+					from[right[right[0]]] = 0;
+					right[0] = right[right[0]];
+				}
+				key[0] = key[1];
+			}
+
+			return true;
+		}
+
+		if (right[removing] == 0) {
+			if (removing != 0) {
+				if (left[from[removing]] == removing) {
+					left[from[removing]] = left[removing];
+				} else {
+					right[from[removing]] = left[removing];
+				}
+				from[left[removing]] = from[removing];
+			} else {
+				if (right[left[0]] != 0) {
+					from[right[left[0]]] = 0;
+					right[0] = right[left[0]];
+				}
+				if (left[left[0]] != 0) {
+					from[left[left[0]]] = 0;
+					left[0] = left[left[0]];
+				}
+				key[0] = key[1];
+			}
+
+			return true;
+		}
+
+		int current = right[removing];
+		while (left[current] != 0)
+			current = left[current];
+
+		if (right[current] != 0) {
+			if (left[from[current]] == current)
+				left[from[current]] = right[current];
+			else
+				right[from[current]] = right[current];
+			from[right[current]] = from[current];
+
+			key[removing] = key[current];
+
+		} else {
+			if (left[from[current]] == current)
+				left[from[current]] = 0;
+			else
+				right[from[current]] = 0;
+
+			key[removing] = key[current];
+		}
+		return true;
+	}
 	
-	public static int[] maxWayCalculation(int deep[], int last[], int key[], int from[], int index) {
+	public static int[] maxWayCalculation(int deep[], int last[], long key[], int from[], int index) {
 		int result[] = new int[3];
-		int saveA = 0, saveB = 0;
 		int length = 0;
-		int sum = Integer.MAX_VALUE;
+		long sum = Long.MAX_VALUE;
 		for (int i = 0; i < index; i++) {
 			for (int j = i + 1; j < index; j++) {
 
-				int currentSum = key[last[i]] + key[last[j]];
+				long currentSum = key[last[i]] + key[last[j]];
 				int currentLength = 0;
 				int a, b;
 				if (deep[last[i]] > deep[last[j]]) {
@@ -271,20 +299,18 @@ public class Problem33 {
 					if (currentSum < sum || currentLength > length) {
 						sum = currentSum;
 						if (deep[last[i]] > deep[last[j]]) {
-							saveA = last[i];
-							saveB = last[j];
+							result[0] = last[i];
+							result[1] = last[j];
 						} else {
-							saveB = last[i];
-							saveA = last[j];
+							result[1] = last[i];
+							result[0] = last[j];
 						}
 					}
 					length = currentLength;
 				}
 			}
 		}
-		
-		result[0] = saveA;
-		result[1] = saveB;
+
 		result[2] = length;
 		return result;
 	}
